@@ -51,7 +51,10 @@ The syntax is:
 xfce4-meta-theme {-list|-save [NAME|PATH]|-load {NAME|PATH|_prev|_last}}
 ```
 
-Also for loading are available special theme names like "_prev" and "_last".
+I.e., optionally you can pass a name or a full path when you save a theme,
+the same - when you load a theme.
+
+Also for loading special theme names are available like "_prev" and "_last".
 
 All themes are saved by default in: `~/.local/share/xfce4-metathemes`.
 
