@@ -28,9 +28,11 @@ current UI (visual) settings, then to load it. It's useful to switch all themes:
 - thunar (currently is not implemented)
 - xfce4-terminal
 
-in one "meta"-theme file treating them as one complex theme. It includes even
-visual settings of a XFCE4 terminal (colors, background...) as well as window
-decorations.
+in one "meta"-theme file treating them as one complex theme.
+
+**It includes even visual settings of a XFCE4 terminal (colors, background...)
+as well as window decorations, the desktop settings (wallpaper, etc), icon theme,
+cursors...**
 
 Examples:
 
@@ -51,19 +53,19 @@ The syntax is:
 xfce4-meta-theme {-list|-save [NAME|PATH]|-load {NAME|PATH|_prev|_last}}
 ```
 
-I.e., optionally you can pass a name or a full path when you save a theme,
-the same - when you load a theme.
+I.e., optionally you can pass a name or a full path when you save a meta-theme,
+the same - when you load a meta-theme.
 
-Also for loading special theme names are available like "_prev" and "_last".
+When loading meta-themes, you can also use special names like "_prev" and "_last".
 
-All themes are saved by default in: `~/.local/share/xfce4-metathemes`.
+All meta-themes are saved by default in: `~/.local/share/xfce4-metathemes`.
 
 ## xfce4-terminal-profile
 
 Very similar to `xfce4-meta-theme` but manage only the terminal. It was written
 before `xfce4-meta-theme`.
 
-Better use `xfce4-meta-theme`!
+Better use `xfce4-meta-theme`.
 
 
 Planned: support of array properties.
