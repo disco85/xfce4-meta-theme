@@ -60,6 +60,42 @@ When loading meta-themes, you can also use special names like "_prev" and "_last
 
 All meta-themes are saved by default in: `~/.local/share/xfce4-metathemes`.
 
+### Configuration
+
+Inside the script there are variables specifying `xfconf` channels to be used
+and their properties (as a list of regexps), like:
+
+```bash
+CHANNELS=(
+    xfce4-panel
+    xfce4-desktop
+    xfwm4
+    xsettings
+    thunar
+    xfce4-terminal
+)
+
+# Properties to be skipped at any cost :)
+SKIP_PROPS=(
+    "/plugin.*"
+)
+
+# Properties to be saved/loaded only:
+# XXX AVOID MULTILINE PROPERTIES, THEY ARE NOT SUPPORTED!!!
+TAKE_PROPS=(
+    "/background-image-file"
+    "/background-image-shading"
+    # and so on ..............
+)
+```
+
+it allows you to extend saving/loading properties. **BUT CURRENTLY ONLY
+SCALAR PROPERTIES ARE SUPPORTED!** (arrays - no).
+
+Also, **PAY ATTENTION: BEFORE EXPERIMENTS, BACKUP YOUR SETTINGS !**.
+
+To save terminal settings, change them first. then XFce will write them to xfconf DB.
+
 ## xfce4-terminal-profile
 
 Very similar to `xfce4-meta-theme` but manage only the terminal. It was written
