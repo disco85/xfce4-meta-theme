@@ -1,0 +1,210 @@
+#!/usr/bin/env bash
+
+# Default directory for meta-themes:
+THEME_DIR="$HOME/.local/share/xfce4-metathemes"
+
+# Saved themes will have this extension by default:
+EXT=xmt
+
+# XFCE4 keeps its settings in xfconf in these channels:
+CHANNELS=(
+    xfce4-panel
+    xfce4-desktop
+    xfwm4
+    xsettings
+    thunar
+    xfce4-terminal
+)
+
+# Properties to be skipped at any cost :)
+SKIP_PROPS=(
+    "/plugin.*"
+)
+
+# Properties to be saved/loaded only:
+# XXX AVOID MULTILINE PROPERTIES, THEY ARE NOT SUPPORTED!!!
+TAKE_PROPS=(
+    "/background-image-file"
+    "/background-image-shading"
+    "/background-image-style"
+    "/background-mode"
+    "/color-background"
+    "/color-background-vary"
+    "/color-bold"
+    "/color-bold-is-bright"
+    "/color-bold-use-default"
+    "/color-cursor"
+    "/color-cursor-foreground"
+    "/color-cursor-use-default"
+    "/color-foreground"
+    "/color-palette"
+    "/color-selection"
+    "/color-selection-background"
+    "/color-selection-use-default"
+    "/color-use-theme"
+    "/font-name"
+    "/misc-borders-default"
+    "/misc-menubar-default"
+    "/misc-show-unsafe-paste-dialog"
+    "/misc-slim-tabs"
+    "/scrolling-bar"
+    "/scrolling-unlimited"
+    "/tab-activity-color"
+    "/text-blink-mode"
+
+    "/general/title_alignment"
+    "/general/title_font"
+    "/general/title_horizontal_offset"
+    "/general/titleless_maximize"
+    "/general/title_shadow_active"
+    "/general/title_shadow_inactive"
+    "/general/title_vertical_offset_active"
+    "/general/title_vertical_offset_inactive"
+    "/general/theme"
+    "/Net/ThemeName"
+    "/Net/IconThemeName"
+
+     "/Gtk/ButtonImages"
+     "/Gtk/ColorPalette"
+     "/Gtk/CursorThemeName"
+     "/Gtk/CursorThemeSize"
+     "/Gtk/DecorationLayout"
+     "/Gtk/FontName"
+     "/Gtk/IconSizes"
+     "/Gtk/KeyThemeName"
+     "/Gtk/MenuImages"
+     "/Gtk/MonospaceFontName"
+
+     "/backdrop/screen0/monitore[^/]+/workspace[^/]+/last-image"
+     "/backdrop/screen0/monitore[^/]+/workspace[^/]+/image-style"
+     "/desktop-icons/gravity"
+     "/desktop-icons/style"
+
+     #"/panels/dark-mode"
+     #"/panels/panel-[0-9]+/autohide-behavior"
+     #"/panels/panel-[0-9]+/background-rgba"
+     #"/panels/panel-[0-9]+/background-style"
+     #"/panels/panel-[0-9]+/enable-struts"
+     #"/panels/panel-[0-9]+/icon-size"
+     #"/panels/panel-[0-9]+/length"
+     #"/panels/panel-[0-9]+/length-adjust"
+     #"/panels/panel-[0-9]+/mode"
+     #"/panels/panel-[0-9]+/nrows"
+     #"/panels/panel-[0-9]+/position"
+     #"/panels/panel-[0-9]+/position-locked"
+     #"/panels/panel-[0-9]+/size"
+    )
+
+theme_file() {
+    local xfconf_theme_name=$(xfconf-query -c xsettings -p /Net/ThemeName)
+    if [[ "$1" =~ [/] ]]; then
+        # full path was passed
+        echo "$1"
+    else
+        # only name was passed or nothing at all
+        echo "$THEME_DIR/${1:-$xfconf_theme_name}.$EXT"
+    fi
+}
+
+prop_to_skip() {
+    local re
+    for re in "${SKIP_PROPS[@]}"; do
+        if [[ "$1" =~ $re ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+prop_to_take() {
+    local re
+    for re in "${TAKE_PROPS[@]}"; do
+        if [[ "$1" =~ $re ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+save() {
+    local outfile ch props val val_escaped prop
+    outfile=$(theme_file "$1")
+    mkdir -p "$THEME_DIR"
+    > "$outfile"
+    for ch in "${CHANNELS[@]}"; do
+        props=$(xfconf-query -c "$ch" -l)
+        echo "channel:$ch" >> "$outfile"
+        for prop in $props; do
+            prop_to_skip "$prop" && continue
+            ! prop_to_take "$prop" && continue
+            # Query value (may be multi-line - but we avoid such)
+            val=$(xfconf-query -c "$ch" -p "$prop" 2>/dev/null)
+            echo "property:$prop:$val" >> "$outfile"
+        done
+        echo "" >> "$outfile"
+    done
+    val=$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null)
+    [ -n "$val" ] && echo "gnome_preferred_theme:$val" >> "$outfile"
+    echo "" >> "$outfile"  # XXX ensure EOL at the end, important, to be parsable!
+    # Copies (previous meta-theme, last meta-theme):
+    [ -e "$THEME_DIR/_last.$EXT" ] && cp -f "$THEME_DIR/_last.$EXT" "$THEME_DIR/_prev.$EXT"
+    cp -f "$outfile" "$THEME_DIR/_last.$EXT"
+    echo "Saved to $outfile and created its copy named _last.$EXT"
+    echo "Previous last is _prev.$EXT if it existed"
+}
+
+load() {
+    local infile what ch prop value
+    infile=$(theme_file "$1")
+    while IFS=':' read -r what key value; do
+        # Skip empty or comment lines
+        [[ -z "$what" || -z "$key" ]] && continue
+        [[ "$key" =~ ^# ]] && continue
+        #echo "$what $key $value"
+        case "$what" in
+            channel)
+                ch="$key"
+                continue
+                ;;
+            property)
+                [[ -z "$ch" || -z "$value" ]] && continue
+                prop_to_skip "$key" && continue
+                ! prop_to_take "$key" && continue
+                xfconf-query -c "$ch" -p "$key" -s "$value"
+                # echo xfconf-query -c "$ch" -p "$key" -s "\"$value\""
+                ;;
+            gnome_preferred_theme)
+                gsettings set org.gnome.desktop.interface color-scheme "$key" 2>/dev/null
+                ;;
+            *) continue
+               ;;
+        esac
+    done < "$infile"
+    # Reload components that need it
+    # echo "Settings restored from $infile"
+    # echo "Now XFCE4 will be restarted..."
+    # sleep 2
+    # xfdesktop --reload & xfwm4 --replace #& xfce4-panel --restart
+}
+
+
+
+####################################### main #######################################
+case "$1" in
+    -list)
+        /bin/find "$THEME_DIR" -name "*.$EXT"
+        ;;
+    -save)
+        save "$2"
+        ;;
+    -load)
+        load "$2"
+        ;;
+    *)
+        echo "SYNTAX: xfc4-themes [-save [NAME|PATH]|-load [NAME|PATH|_last|_prev]|-list]"
+        echo "  where <NAME> is name of theme like you want to call it without an extension and '/' symbols"
+        echo "All themes are saved by default in $THEME_DIR with $EXT extension"
+        exit 1
+        ;;
+esac
+exit 0

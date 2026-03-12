@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+TO_BACKUP=(
+  "$HOME/.config/xfce4"
+  "$HOME/.config/Thunar"
+  "$HOME/.config/autostart"
+  "$HOME/.local/share/xfce4"
+  "$HOME/.config/gtk-3.0"
+  "$HOME/.config/gtk-4.0"
+)
+
+
+arc=${2:-tbz}
+case "$2" in
+    tar|tbz|tbz2)
+        ext=tar.bz2
+        archive="$1.$ext"
+        cmd="tar -T - -cjvf $archive"
+        ;;
+    cpio|cpiobz2)
+        ext=cpio.bz2
+        archive="$1.$ext"
+        cmd="cpio -ov | bzip2 > $archive"
+        ;;
+    *)
+        echo $SYNTAX
+        exit 1
+        ;;
+esac
+{
+    for p in "${TO_BACKUP[@]}"; do
+        [ -d "$p" ] && find "$p"
+    done
+} | eval $cmd
+echo "BACKED UP TO $archive"

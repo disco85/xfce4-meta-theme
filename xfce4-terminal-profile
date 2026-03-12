@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Managment of xfce4-terminal profiles: save current, load one, list all.
+# All profiles are saved/loaded from PROFILE_DIR = $HOME/.local/share/xfce4-terminal-profiles
+#
+# To list them:
+#   xfc4-terminal-profile -list
+# To save current pass the file name (not full path!) without extension. By default the name is "current",
+# default extesion is ".conf" but never pass it:
+#   xfc4-terminal-profile -save [name-without-extension]
+# To load some:
+#   xfc4-terminal-profile [name-without-extension]
+
+PROFILE_DIR="$HOME/.local/share/xfce4-terminal-profiles"
+PROFILE_PROPS_TO_SAVE='color-palette\|color-foreground\|color-background-vary\|color-background\|background-mode'
+
+if [ "$1" = '-list' ]; then
+    echo 'KNOWN PROFILES ARE:'
+    /bin/find "$PROFILE_DIR" -name "*.conf"
+    echo 'PASS ONLY FILE NAME (WITHOUT DIRECTORY AND EXTENSION) IF YOU WANT IT'
+    exit 0
+fi
+
+if [ "$1" = '-save' ]; then
+    PROFILE_NAME=`echo $2|sed s/\.conf//`
+    PROFILE="$PROFILE_DIR/${PROFILE_NAME:-current}.conf"
+    mkdir -p "$PROFILE_DIR"
+    xfconf-query -c xfce4-terminal -v -l|sed -n "s/\/\($PROFILE_PROPS_TO_SAVE\)[ \t]*\(.\+\)\+/\1=\2/p" \
+                 > "$PROFILE"
+    echo "CURRENT PROFILE SAVED IN $PROFILE"
+    exit 0
+fi
+
+
+PROFILE_NAME=`echo $1|sed s/\.conf//`
+PROFILE="$PROFILE_DIR/${PROFILE_NAME:-current}.conf"
+
+if [ ! -f "$PROFILE" ]; then
+    echo "Profile $PROFILE not found in $PROFILE_DIR"
+    exit 1
+fi
+
+while IFS='=' read -r key value; do
+    # Skip empty lines and comments
+    [[ -z "$key" || "$key" =~ ^# ]] && continue
+    xfconf-query -c xfce4-terminal -p "/$key" -s "$value"
+done < "$PROFILE"
+
+echo "Loaded XFCE4 terminal profile: $1"
