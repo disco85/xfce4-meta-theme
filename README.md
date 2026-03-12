@@ -44,7 +44,7 @@ xfce4-meta-theme -save
 xfce4-meta-theme -list
 
 # then load some (WITHOUT EXTENSION and FULL PATH: JUST NAME!):
-xfce4-meta-theme Sunset-Dark
+xfce4-meta-theme -load Sunset-Dark
 ```
 
 The syntax is:
