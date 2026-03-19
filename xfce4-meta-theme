@@ -215,16 +215,16 @@ load() {
                     array_key="$key"
                     continue
                 elif array_arg=$(array_to_xfconf_args "${array[@]}"); then
-                    echo 1 xfconf-query -c "$ch" -p "$array_key" "$array_arg"
+                    # Set previous array property (array_key is its name) if its items were collected:
+                    xfconf-query -c "$ch" -p "$array_key" "$array_arg"
                 fi
                 array=()
                 prop_to_skip "$key" && continue
                 ! prop_to_take "$key" && continue
-                # xfconf-query -c "$ch" -p "$key" -s "$value"
-                echo 2 xfconf-query -c "$ch" -p "$key" -s "\"$value\""
+                xfconf-query -c "$ch" -p "$key" -s "$value"
                 ;;
             gnome_preferred_theme)
-                echo gsettings set org.gnome.desktop.interface color-scheme "$key" 2>/dev/null
+                gsettings set org.gnome.desktop.interface color-scheme "$key" 2>/dev/null
                 ;;
             *)  continue
                 ;;
