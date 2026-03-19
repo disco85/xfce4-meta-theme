@@ -89,8 +89,9 @@ TAKE_PROPS=(
 )
 ```
 
-it allows you to extend saving/loading properties. **BUT CURRENTLY ONLY
-SCALAR PROPERTIES ARE SUPPORTED!** (arrays - no).
+it allows you to extend saving/loading properties.
+
+Arrays support was added too, but be careful with such properties!
 
 Also, **PAY ATTENTION: BEFORE EXPERIMENTS, BACKUP YOUR SETTINGS !**.
 
@@ -103,5 +104,3 @@ before `xfce4-meta-theme`.
 
 Better use `xfce4-meta-theme`.
 
-
-Planned: support of array properties.
