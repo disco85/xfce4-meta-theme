@@ -21,7 +21,7 @@ and it will save your current themes in the archive file.
 Simple BASH-tool saving/loading/listing XFCE4 "meta"-theme. You can save your
 current UI (visual) settings, then to load it. It's useful to switch all themes:
 
-- xfce4-panel (currently is not implemented)
+- xfce4-panel
 - xfce4-desktop
 - xfwm4
 - xsettings
