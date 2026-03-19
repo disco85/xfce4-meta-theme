@@ -64,35 +64,35 @@ TAKE_PROPS=(
     "/Net/ThemeName"
     "/Net/IconThemeName"
 
-     "/Gtk/ButtonImages"
-     "/Gtk/ColorPalette"
-     "/Gtk/CursorThemeName"
-     "/Gtk/CursorThemeSize"
-     "/Gtk/DecorationLayout"
-     "/Gtk/FontName"
-     "/Gtk/IconSizes"
-     "/Gtk/KeyThemeName"
-     "/Gtk/MenuImages"
-     "/Gtk/MonospaceFontName"
+    "/Gtk/ButtonImages"
+    "/Gtk/ColorPalette"
+    "/Gtk/CursorThemeName"
+    "/Gtk/CursorThemeSize"
+    "/Gtk/DecorationLayout"
+    "/Gtk/FontName"
+    "/Gtk/IconSizes"
+    "/Gtk/KeyThemeName"
+    "/Gtk/MenuImages"
+    "/Gtk/MonospaceFontName"
 
-     "/backdrop/screen0/monitore[^/]+/workspace[^/]+/last-image"
-     "/backdrop/screen0/monitore[^/]+/workspace[^/]+/image-style"
-     "/desktop-icons/gravity"
-     "/desktop-icons/style"
+    "/backdrop/screen0/monitore[^/]+/workspace[^/]+/last-image"
+    "/backdrop/screen0/monitore[^/]+/workspace[^/]+/image-style"
+    "/desktop-icons/gravity"
+    "/desktop-icons/style"
 
-     #"/panels/dark-mode"
-     #"/panels/panel-[0-9]+/autohide-behavior"
-     #"/panels/panel-[0-9]+/background-rgba"
-     #"/panels/panel-[0-9]+/background-style"
-     #"/panels/panel-[0-9]+/enable-struts"
-     #"/panels/panel-[0-9]+/icon-size"
-     #"/panels/panel-[0-9]+/length"
-     #"/panels/panel-[0-9]+/length-adjust"
-     #"/panels/panel-[0-9]+/mode"
-     #"/panels/panel-[0-9]+/nrows"
-     #"/panels/panel-[0-9]+/position"
-     #"/panels/panel-[0-9]+/position-locked"
-     #"/panels/panel-[0-9]+/size"
+    "/panels/dark-mode"
+    "/panels/panel-[0-9]+/autohide-behavior"
+    "/panels/panel-[0-9]+/background-rgba"
+    "/panels/panel-[0-9]+/background-style"
+    "/panels/panel-[0-9]+/enable-struts"
+    "/panels/panel-[0-9]+/icon-size"
+    "/panels/panel-[0-9]+/length"
+    "/panels/panel-[0-9]+/length-adjust"
+    "/panels/panel-[0-9]+/mode"
+    "/panels/panel-[0-9]+/nrows"
+    "/panels/panel-[0-9]+/position"
+    "/panels/panel-[0-9]+/position-locked"
+    "/panels/panel-[0-9]+/size"
     )
 
 theme_file() {
@@ -126,6 +126,30 @@ prop_to_take() {
     return 1
 }
 
+detect_type() {
+    if echo "$1" | grep -qE '^[0-9]+\.[0-9]+$'; then
+        echo double
+    elif echo "$1" | grep -qE '^[0-9]+$'; then
+        echo int
+    elif echo "$1" | grep -qiE '^(true|false)$'; then
+        echo bool
+    else
+        echo string
+    fi
+}
+
+detect_array_type() {
+    local item item_type prev_item_type
+    for item in "$@"; do
+        item_type=$(detect_type "$item")
+        if [[ -n "$prev_item_type" && "$prev_item_type" != "$item_type" ]]; then
+            return 1
+        fi
+        prev_item_type="$item_type"
+    done
+    echo "$item_type"
+}
+
 save() {
     local outfile ch props val val_escaped prop
     outfile=$(theme_file "$1")
@@ -153,14 +177,33 @@ save() {
     echo "Previous last is _prev.$EXT if it existed"
 }
 
+array_to_xfconf_args() {
+    local array_type array_item
+    if [[ $# -ne 0 ]]; then
+        if array_type=$(detect_array_type "$@"); then
+            printf -- " --type $array_type "
+            for array_item in "$@"; do printf -- '-s "%s" ' "$array_item"; done
+            return 0
+        fi
+    fi
+    return 1
+}
+
 load() {
-    local infile what ch prop value
+    local infile what ch key value array array_arg array_key
     infile=$(theme_file "$1")
+    array=()
     while IFS=':' read -r what key value; do
-        # Skip empty or comment lines
-        [[ -z "$what" || -z "$key" ]] && continue
-        [[ "$key" =~ ^# ]] && continue
-        #echo "$what $key $value"
+        # Skip comment lines:
+        if [[ "$key" =~ ^# ]]; then
+            continue
+        fi
+        if [[ -n "$what" && -z "$key" && -z "$value" ]]; then
+            array+=("$what")
+            continue
+        elif [[ -z "$what" && -z "$key" && -z "$value" ]]; then
+            continue
+        fi
         case "$what" in
             channel)
                 ch="$key"
@@ -168,16 +211,23 @@ load() {
                 ;;
             property)
                 [[ -z "$ch" || -z "$value" ]] && continue
+                if [[ "$value" =~ "Value is an array" ]]; then
+                    array_key="$key"
+                    continue
+                elif array_arg=$(array_to_xfconf_args "${array[@]}"); then
+                    echo 1 xfconf-query -c "$ch" -p "$array_key" "$array_arg"
+                fi
+                array=()
                 prop_to_skip "$key" && continue
                 ! prop_to_take "$key" && continue
-                xfconf-query -c "$ch" -p "$key" -s "$value"
-                # echo xfconf-query -c "$ch" -p "$key" -s "\"$value\""
+                # xfconf-query -c "$ch" -p "$key" -s "$value"
+                echo 2 xfconf-query -c "$ch" -p "$key" -s "\"$value\""
                 ;;
             gnome_preferred_theme)
-                gsettings set org.gnome.desktop.interface color-scheme "$key" 2>/dev/null
+                echo gsettings set org.gnome.desktop.interface color-scheme "$key" 2>/dev/null
                 ;;
-            *) continue
-               ;;
+            *)  continue
+                ;;
         esac
     done < "$infile"
     # Reload components that need it
