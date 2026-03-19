@@ -81,7 +81,7 @@ SKIP_PROPS=(
 )
 
 # Properties to be saved/loaded only:
-# XXX AVOID MULTILINE PROPERTIES, THEY ARE NOT SUPPORTED!!!
+# XXX BE CAREFUL WITH MULTILINE PROPERTIES (THEY ARE SUPPORTED THOUGH)
 TAKE_PROPS=(
     "/background-image-file"
     "/background-image-shading"
@@ -93,7 +93,7 @@ it allows you to extend saving/loading properties.
 
 Arrays support was added too, but be careful with such properties!
 
-Also, **PAY ATTENTION: BEFORE EXPERIMENTS, BACKUP YOUR SETTINGS !**.
+Also, **PAY ATTENTION: BEFORE EXPERIMENTS, BACKUP YOUR SETTINGS !**
 
 To save terminal settings, change them first. then XFce will write them to xfconf DB.
 
